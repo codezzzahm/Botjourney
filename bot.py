@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from dbhelper import DBHELPER 
 db=DBHELPER()
 NOTES=range(1)
+DELETE=range(1)
 def savenotes(update,text):
   update.message.reply_text("alright! what you wanna save? just type it...type /cancel to cancel")
   return NOTES
@@ -25,6 +26,20 @@ def getnotes(update,context):
   items=db.get_items()
   update.message.text="\n".join(items)
   update.message.reply_text(update.message.text)
+def deletenotes(update,context):
+  update.message.reply_text("Tell me what to delete...\click /canceldelete for cancel")
+  return DELETE
+def delete(update,context):
+  items=db.get_items()
+  if update.message.text in items:
+    db.delete_items(update.message.text)
+  else:
+    update.message.reply_text("cant find it")
+  update.message.reply_text("deleted")
+  return ConversationHandler.END 
+def canceldelete(update,context):
+  update.message.reply_text("aight!")
+  return ConversationHandler.END 
 def cancel(update,context):
   update.message.reply_text("cool")
   return ConversationHandler.END
@@ -80,13 +95,14 @@ def main():
     conv_hand=ConversationHandler(entry_points=[CommandHandler("savenotes",savenotes)],states={NOTES:[MessageHandler(Filters.text& ~Filters.command,notes)]},fallbacks=[CommandHandler("cancel",cancel)])
     dp.add_handler(conv_hand)
     dp.add_handler(CommandHandler('getnotes',getnotes))
+    conv_hand2=ConversationHandler(entry_points=[CommandHandler("deletenotes",deletenotes)],states={DELETE:[MessageHandler(Filters.text,delete)]},fallbacks=[CommandHandler("canceldelete",cancel)])
+    dp.add_handler(conv_hand2)
     dp.add_handler(MessageHandler(Filters.text, echo))
     
     
     dp.add_error_handler(error)
-    updater.start_webhook(listen="0.0.0.0",port=int(PORT),url_path=TOKEN)
+    updater.start_polling()
     
-    updater.bot.setWebhook('https://huk-huk.herokuapp.com/'+TOKEN)
     updater.idle()
 
 
