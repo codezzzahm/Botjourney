@@ -1,16 +1,10 @@
-
-"""
-Simple Bot to reply to Telegram messages taken from the python-telegram-bot examples.
-Deployed using heroku.
-Author: liuhh02 https://medium.com/@liuhh02
-"""
 import telegram
 import random
 import requests
 import logging
 from telegram import Update
+import os
 from telegram.ext import Updater,CommandHandler, MessageHandler, Filters,ConversationHandler
-import os 
 from bs4 import BeautifulSoup
 from dbhelper import DBHELPER 
 db=DBHELPER()
@@ -38,7 +32,6 @@ def cancel(update,context):
 
 PORT = int(os.environ.get('PORT', 5000))
 
-# Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
@@ -55,11 +48,6 @@ resp = requests.get("https://en.wikipedia.org/wiki/Special:Random")
 article_name = resp.url.split("/")[-1]
 url1 = f"https://en.wikipedia.org/api/rest_v1/page/summary/{article_name}"
 wikii=requests.get(url1).json()
-# Define a few command handlers. These usually take the two arguments update and
-# context. Error handlers also receive the raised TelegramError object in error.
-  
-
-
 def echo(update, context):
     if update.message.text in text1:
        update.message.reply_text(random.choice(text2))
@@ -84,38 +72,23 @@ def error(update, context):
 
 def main():
     db.setup()
-    """Start the bot."""
-    # Create the Updater and pass it your bot's token.
-    # Make sure to set use_context=True to use the new context based callbacks
-    # Post version 12 this will no longer be necessary
     updater = Updater(TOKEN, use_context=True)
 
-    # Get the dispatcher to register handlers
     dp = updater.dispatcher
 
-    # on different commands - answer in Telegram
 
-    # on noncommand i.e message - echo the message on TelegramError 
     conv_hand=ConversationHandler(entry_points=[CommandHandler("savenotes",savenotes)],states={NOTES:[MessageHandler(Filters.text& ~Filters.command,notes)]},fallbacks=[CommandHandler("cancel",cancel)])
     dp.add_handler(conv_hand)
     dp.add_handler(CommandHandler('getnotes',getnotes))
     dp.add_handler(MessageHandler(Filters.text, echo))
     
     
-
-    # log all errors
     dp.add_error_handler(error)
-
-    # Start the bot
-    
-    # Run the bot until you press Ctrl-C or the process receives SIGINT,
-    # SIGTERM or SIGABRT. This should be used most of the time, since
-    # start_polling() is non-blocking and will stop the bot gracefully.
     updater.start_webhook(listen="0.0.0.0",port=int(PORT),url_path=TOKEN)
     
-    updater.bot.setWebhook('https://duk-duk.herokuapp.com/'+TOKEN)
+    updater.bot.setWebhook('https://huk-huk.herokuapp.com/'+TOKEN)
+    updater.idle()
 
- 
 
 if __name__ == '__main__':
     main()
