@@ -9,9 +9,33 @@ import random
 import requests
 import logging
 from telegram import Update
-from telegram.ext import Updater,CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater,CommandHandler, MessageHandler, Filters,ConversationHandler
 import os 
 from bs4 import BeautifulSoup
+from dbhelper import DBHELPER 
+db=DBHELPER()
+NOTES=range(1)
+def savenotes(update,text):
+  update.message.reply_text("alright! what you wanna save? just type it...type /cancel to cancel")
+  return NOTES
+def notes(update,context):
+  items=db.get_items()
+  if update.message.text in items:
+    db.delete_items(update.message.text)
+    items=db.get_items()
+  else:
+    db.add_item(update.message.text)
+  update.message.reply_text("ok saved!")  
+  return ConversationHandler.END 
+def getnotes(update,context):
+  items=db.get_items()
+  update.message.text="\n".join(items)
+  update.message.reply_text(update.message.text)
+def cancel(update,context):
+  update.message.reply_text("cool")
+  return ConversationHandler.END
+
+
 PORT = int(os.environ.get('PORT', 5000))
 
 # Enable logging
@@ -45,7 +69,6 @@ def echo(update, context):
       update.message.reply_text("I hope you like this article...\n"+wikii["content_urls"]["desktop"]["page"])
     elif update.message.text=="Dictionary":
       update.message.reply_text("Just type the your word with '/' \nFor example /islam")
-      
     else:
       url="https://www.oxfordlearnersdictionaries.com/definition/english/"+update.message.text
       page=requests.get(url)
@@ -60,6 +83,7 @@ def error(update, context):
     logger.warning('Update "%s" caused error "%s"', update, context.error)
 
 def main():
+    db.setup()
     """Start the bot."""
     # Create the Updater and pass it your bot's token.
     # Make sure to set use_context=True to use the new context based callbacks
@@ -71,7 +95,10 @@ def main():
 
     # on different commands - answer in Telegram
 
-    # on noncommand i.e message - echo the message on Telegram
+    # on noncommand i.e message - echo the message on TelegramError 
+    conv_hand=ConversationHandler(entry_points=[CommandHandler("savenotes",savenotes)],states={NOTES:[MessageHandler(Filters.text& ~Filters.command,notes)]},fallbacks=[CommandHandler("cancel",cancel)])
+    dp.add_handler(conv_hand)
+    dp.add_handler(CommandHandler('getnotes',getnotes))
     dp.add_handler(MessageHandler(Filters.text, echo))
     
     
@@ -84,7 +111,10 @@ def main():
     # Run the bot until you press Ctrl-C or the process receives SIGINT,
     # SIGTERM or SIGABRT. This should be used most of the time, since
     # start_polling() is non-blocking and will stop the bot gracefully.
-    updater.start_polling()
+    updater.start_webhook(listen="0.0.0.0",port=int(PORT),url_path=TOKEN)
+    
+    updater.bot.setWebhook('https://duk-duk.herokuapp.com/'+TOKEN)
+
  
 
 if __name__ == '__main__':
