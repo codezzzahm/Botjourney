@@ -1,2 +1,1 @@
-# Botjourney
-Create a telegram bot similar to AI
+Shitty Telegram bots.
