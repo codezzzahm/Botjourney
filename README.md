@@ -1,1 +1,1 @@
-Shitty Telegram bots.
+telegram bots.
